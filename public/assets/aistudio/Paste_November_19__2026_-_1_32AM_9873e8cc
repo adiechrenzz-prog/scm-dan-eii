@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>E&I TEAM MANAGEMENT</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS for Excel Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF & AutoTable for PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #e2e8f0;
+      margin: 0;
+      padding: 0;
+    }
+    .app-container {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background-color: #f8fafc;
+      position: relative;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.1);
+      padding-bottom: 90px;
+      overflow-x: hidden;
+    }
+    .header-curve {
+      background: linear-gradient(135deg, #0b4db3 0%, #1d6ce0 100%);
+      border-bottom-left-radius: 28px;
+      border-bottom-right-radius: 28px;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+  <!-- TOP BLUE HEADER -->
+  <div class="header-curve text-white pt-5 pb-16 px-5 relative">
+    <!-- App Title & Role Switcher -->
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-[11px] font-bold tracking-wider uppercase bg-white/15 px-2.5 py-1 rounded-full backdrop-blur-sm">
+        E&I TEAM MANAGEMENT
+      </span>
+      <button onclick="toggleRole()" id="roleSwitchBtn" class="text-[11px] font-semibold bg-amber-400 text-slate-900 px-2.5 py-1 rounded-full shadow-sm active:scale-95 transition">
+        Mode: Supervisor ⇄
+      </button>
+    </div>
+
+    <!-- Greeting & Icons -->
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-xs text-blue-100">Halo, Selamat Pagi</p>
+        <h1 id="userName" class="text-xl font-bold tracking-tight mt-0.5">Supervisor E&I</h1>
+        <p id="userSubtitle" class="text-xs text-blue-100 mt-0.5">Lead E&I • Single Shift (08:00 - 17:00)</p>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <button onclick="showToast('Semua sistem & 6 teknisi termonitor aman')" class="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center relative active:scale-95 transition">
+          <i data-lucide="bell" class="w-5 h-5 text-white"></i>
+          <span class="w-2.5 h-2.5 bg-red-500 border-2 border-[#1660cf] rounded-full absolute top-2 right-2"></span>
+        </button>
+        <div id="userAvatar" class="w-10 h-10 rounded-full bg-blue-400/40 border-2 border-white/60 flex items-center justify-center font-bold text-sm">
+          SP
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING 2 STATUS CARDS -->
+  <div class="px-5 -mt-11 relative z-10">
+    <div class="grid grid-cols-2 gap-3.5">
+      <!-- Left Card: Kehadiran -->
+      <div onclick="openModal('modalRiwayat')" class="bg-white rounded-2xl p-3.5 shadow-md shadow-slate-200/70 border border-slate-100 flex items-center gap-3 cursor-pointer active:scale-98 transition">
+        <div id="statusAbsenIcon" class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <p class="text-[11px] text-slate-500 font-medium" id="leftCardLabel">Tim Hadir</p>
+          <p class="text-base font-extrabold text-emerald-600 leading-tight mt-0.5" id="leftCardValue">6 / 7 Orang</p>
+        </div>
+      </div>
+
+      <!-- Right Card: Work Order / Status -->
+      <div onclick="openModal('modalMonitoring')" class="bg-white rounded-2xl p-3.5 shadow-md shadow-slate-200/70 border border-slate-100 flex items-center gap-3 cursor-pointer active:scale-98 transition">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <i data-lucide="wrench" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <p class="text-[11px] text-slate-500 font-medium">WO Aktif</p>
+          <p class="text-base font-extrabold text-blue-600 leading-tight mt-0.5" id="rightCardValue">4 Pekerjaan</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN MENU GRID (4 COLUMNS) -->
+  <div class="px-5 mt-6">
+    <div class="flex items-center justify-between mb-3.5">
+      <h2 class="text-sm font-bold text-slate-800">Menu Operasional E&I</h2>
+      <span class="text-[11px] text-slate-400 font-medium">Single Shift</span>
+    </div>
+
+    <div class="grid grid-cols-4 gap-y-5 gap-x-2 text-center">
+      <!-- 1. Preventive Maintenance -->
+      <button onclick="openWorkModal('Preventive Maintenance')" class="flex flex-col items-center group">
+        <div class="w-13 h-13 w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Preventive<br>(PM)</span>
+      </button>
+
+      <!-- 2. Corrective Maintenance -->
+      <button onclick="openWorkModal('Corrective Maintenance')" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="wrench" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Corrective<br>(CM)</span>
+      </button>
+
+      <!-- 3. Breakdown Report -->
+      <button onclick="openWorkModal('Breakdown Report')" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Breakdown<br>Report</span>
+      </button>
+
+      <!-- 4. Monitoring Pekerjaan -->
+      <button onclick="openModal('modalMonitoring')" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="activity" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Monitoring<br>Kerja</span>
+      </button>
+
+      <!-- 5. Riwayat Kehadiran -->
+      <button onclick="openModal('modalRiwayat')" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="map-pin" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Riwayat<br>Absensi</span>
+      </button>
+
+      <!-- 6. Tim E&I (1 SPV + 6 Teknisi) -->
+      <button onclick="openModal('modalTim')" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="users" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Personel<br>E&I (7)</span>
+      </button>
+
+      <!-- 7. Export Excel -->
+      <button onclick="exportToExcel()" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-700 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Export<br>Excel</span>
+      </button>
+
+      <!-- 8. Export PDF -->
+      <button onclick="exportToPDF()" class="flex flex-col items-center group">
+        <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-1.5 shadow-xs group-active:scale-90 transition">
+          <i data-lucide="file-text" class="w-6 h-6"></i>
+        </div>
+        <span class="text-[11px] font-semibold text-slate-700 leading-tight">Export<br>PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- INFO & BRIEFING SLIDER -->
+  <div class="mt-7 pl-5">
+    <div class="flex items-center justify-between pr-5 mb-3">
+      <h2 class="text-sm font-bold text-slate-800">Info & Briefing E&I</h2>
+      <button onclick="openModal('modalMonitoring')" class="text-xs font-semibold text-blue-600">Lihat Semua</button>
+    </div>
+
+    <div class="flex gap-3.5 overflow-x-auto no-scrollbar pr-5 pb-2">
+      <!-- Card 1 -->
+      <div class="min-w-[265px] bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">
+            PREVENTIVE SCHEDULE
+          </span>
+          <span class="text-[11px] text-slate-400">Hari Ini</span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">Kalibrasi Pressure Transmitter</h3>
+        <p class="text-xs text-slate-500 mt-1 line-clamp-2">Cek loop 4-20mA & zero calibration pada Skid Compressor Unit 01 - 03.</p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="min-w-[265px] bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-600 px-2 py-0.5 rounded-md">
+            SAFETY REMINDER
+          </span>
+          <span class="text-[11px] text-slate-400">Single Shift</span>
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">Wajib LOTO Sebelum Kerja Panel</h3>
+        <p class="text-xs text-slate-500 mt-1 line-clamp-2">Pastikan Lock Out Tag Out terpasang dan verifikasi zero voltage sebelum terminasi.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECENT WORK ORDERS PREVIEW -->
+  <div class="px-5 mt-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-bold text-slate-800">Pekerjaan Terbaru</h2>
+      <span class="text-[11px] text-slate-400" id="woCountBadge">4 Log</span>
+    </div>
+    <div id="recentWoList" class="space-y-2.5">
+      <!-- Rendered via JS -->
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION BAR WITH FLOATING ABSENSI BUTTON -->
+  <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-slate-200/80 px-4 py-2 flex items-center justify-between z-30 shadow-[0_-4px_15px_rgba(0,0,0,0.04)]">
+    <button onclick="closeAllModals()" class="flex flex-col items-center text-blue-600 w-14">
+      <i data-lucide="home" class="w-5 h-5"></i>
+      <span class="text-[10px] font-bold mt-1">Beranda</span>
+    </button>
+
+    <button onclick="openModal('modalMonitoring')" class="flex flex-col items-center text-slate-400 hover:text-blue-600 w-14">
+      <i data-lucide="clock" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium mt-1">Aktivitas</span>
+    </button>
+
+    <!-- CENTER FLOATING ACTION BUTTON: ABSENSI GPS & SELFIE -->
+    <div class="relative -top-6 flex flex-col items-center">
+      <button onclick="openAbsenModal()" class="w-15 h-15 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/40 border-4 border-white flex items-center justify-center active:scale-90 transition">
+        <i data-lucide="scan-face" class="w-7 h-7"></i>
+      </button>
+      <span class="text-[10px] font-bold text-emerald-600 mt-1">Absen GPS</span>
+    </div>
+
+    <button onclick="openModal('modalLaporan')" class="flex flex-col items-center text-slate-400 hover:text-blue-600 w-14">
+      <i data-lucide="file-bar-chart-2" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium mt-1">Laporan</span>
+    </button>
+
+    <button onclick="openModal('modalTim')" class="flex flex-col items-center text-slate-400 hover:text-blue-600 w-14">
+      <i data-lucide="user" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium mt-1">Tim E&I</span>
+    </button>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. MODAL ABSENSI GPS & SELFIE -->
+  <div id="modalAbsen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-5 animate-slide-up max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Absensi GPS & Selfie</h3>
+          <p class="text-xs text-slate-500">Single Shift (08:00 - 17:00 WIB)</p>
+        </div>
+        <button onclick="closeModal('modalAbsen')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Camera Preview -->
+      <div class="relative w-full h-56 bg-slate-900 rounded-2xl overflow-hidden mb-3 flex items-center justify-center">
+        <video id="cameraStream" autoplay playsinline class="w-full h-full object-cover scale-x-[-1]"></video>
+        <canvas id="photoCanvas" class="hidden w-full h-full object-cover"></canvas>
+        <div id="cameraPlaceholder" class="text-center text-slate-400 p-4 hidden">
+          <i data-lucide="camera-off" class="w-8 h-8 mx-auto mb-1"></i>
+          <p class="text-xs">Kamera tidak tersedia / izin ditolak. Mode simulasi aktif.</p>
+        </div>
+        <span class="absolute top-3 left-3 bg-black/60 text-white text-[10px] px-2.5 py-1 rounded-full backdrop-blur-xs" id="liveClockBadge">
+          08:00:00 WIB
+        </span>
+      </div>
+
+      <!-- GPS Coordinates Info -->
+      <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 mb-4 flex items-start gap-2.5">
+        <i data-lucide="map-pin" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+        <div class="text-xs">
+          <p class="font-semibold text-slate-700">Lokasi GPS Terdeteksi:</p>
+          <p id="gpsCoordsText" class="text-slate-500 font-mono text-[11px] mt-0.5">Mencari titik koordinat...</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="submitAbsensi('Masuk')" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-600/20 active:scale-95 transition">
+          Absen Masuk
+        </button>
+        <button onclick="submitAbsensi('Pulang')" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/20 active:scale-95 transition">
+          Absen Pulang
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL INPUT WORK ORDER (PM / CM / BREAKDOWN) -->
+  <div id="modalWork" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <span id="workCategoryBadge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-700">FORM LAPORAN</span>
+          <h3 id="workModalTitle" class="text-base font-bold text-slate-800 mt-1">Input Pekerjaan</h3>
+        </div>
+        <button onclick="closeModal('modalWork')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="submitWorkOrder(event)" class="space-y-3.5">
+        <input type="hidden" id="woTypeInput" />
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Tag Number / Equipment</label>
+          <input type="text" id="woTagInput" required placeholder="Contoh: PT-102 / Motor Pump A / PLC-01" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Teknisi Pelaksana</label>
+          <select id="woTechInput" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500">
+            <option value="Teknisi 1 (Andi)">Teknisi 1 - Andi (Instrument)</option>
+            <option value="Teknisi 2 (Budi)">Teknisi 2 - Budi (Electrical)</option>
+            <option value="Teknisi 3 (Candra)">Teknisi 3 - Candra (Instrument)</option>
+            <option value="Teknisi 4 (Dedi)">Teknisi 4 - Dedi (Electrical)</option>
+            <option value="Teknisi 5 (Eko)">Teknisi 5 - Eko (PLC & Control)</option>
+            <option value="Teknisi 6 (Fajar)">Teknisi 6 - Fajar (General E&I)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Deskripsi Temuan & Tindakan</label>
+          <textarea id="woDescInput" rows="3" required placeholder="Jelaskan kondisi alat, parameter 4-20mA / tegangan, dan tindakan perbaikan..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status Pekerjaan</label>
+          <select id="woStatusInput" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-blue-500">
+            <option value="Open">Open (Baru Dilaporkan)</option>
+            <option value="In Progress">In Progress (Sedang Dikerjakan)</option>
+            <option value="Done">Done (Selesai & Normal)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-600/20 active:scale-95 transition">
+          Simpan Laporan Kerja
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. MODAL MONITORING PEKERJAAN -->
+  <div id="modalMonitoring" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[88vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3 shrink-0">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Monitoring Pekerjaan E&I</h3>
+          <p class="text-xs text-slate-500">PM, Corrective, & Breakdown Log</p>
+        </div>
+        <button onclick="closeModal('modalMonitoring')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar shrink-0">
+        <button onclick="filterMonitoring('ALL')" class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-600 text-white">Semua</button>
+        <button onclick="filterMonitoring('Preventive Maintenance')" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">PM</button>
+        <button onclick="filterMonitoring('Corrective Maintenance')" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">CM</button>
+        <button onclick="filterMonitoring('Breakdown Report')" class="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">Breakdown</button>
+      </div>
+
+      <div id="fullMonitoringList" class="space-y-2.5 overflow-y-auto pr-1 flex-1">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MODAL RIWAYAT KEHADIRAN -->
+  <div id="modalRiwayat" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-4 shrink-0">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Riwayat Kehadiran GPS</h3>
+          <p class="text-xs text-slate-500">Log Absensi Single Shift Hari Ini</p>
+        </div>
+        <button onclick="closeModal('modalRiwayat')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="attendanceList" class="space-y-2.5 overflow-y-auto flex-1">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL PERSONEL TIM E&I (1 SPV + 6 TEKNISI) -->
+  <div id="modalTim" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-5 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Struktur Tim E&I</h3>
+          <p class="text-xs text-slate-500">1 Supervisor & 6 Teknisi (Single Shift)</p>
+        </div>
+        <button onclick="closeModal('modalTim')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="teamListContainer" class="space-y-2.5">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MODAL EXPORT LAPORAN EXCEL & PDF -->
+  <div id="modalLaporan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-base font-bold text-slate-800">Export Laporan Departemen</h3>
+          <p class="text-xs text-slate-500">Unduh Rekap Absensi & Pekerjaan E&I</p>
+        </div>
+        <button onclick="closeModal('modalLaporan')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <button onclick="exportToExcel()" class="w-full p-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 flex items-center justify-between active:scale-98 transition">
+          <div class="flex items-center gap-3 text-left">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-800">Download Laporan Excel (.xlsx)</p>
+              <p class="text-xs text-slate-500">Sheet 1: Work Order | Sheet 2: Absensi GPS</p>
+            </div>
+          </div>
+          <i data-lucide="download" class="w-5 h-5 text-emerald-700"></i>
+        </button>
+
+        <button onclick="exportToPDF()" class="w-full p-4 rounded-2xl border border-purple-200 bg-purple-50/70 flex items-center justify-between active:scale-98 transition">
+          <div class="flex items-center gap-3 text-left">
+            <div class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center">
+              <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-800">Download Laporan PDF (.pdf)</p>
+              <p class="text-xs text-slate-500">Format resmi siap tanda tangan Supervisor</p>
+            </div>
+          </div>
+          <i data-lucide="download" class="w-5 h-5 text-purple-700"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg z-50 hidden transition-opacity">
+    Notifikasi
+  </div>
+</div>
+
+<script>
+  // INITIAL DATA (1 Supervisor + 6 Teknisi)
+  const teamMembers = [
+    { name: "Supervisor E&I", role: "Supervisor", specialty: "Lead Electrical & Instrument", status: "Hadir", time: "07:45" },
+    { name: "Teknisi 1 (Andi)", role: "Teknisi", specialty: "Instrument & Calibration", status: "Hadir", time: "07:50" },
+    { name: "Teknisi 2 (Budi)", role: "Teknisi", specialty: "Electrical Power & Motor", status: "Hadir", time: "07:52" },
+    { name: "Teknisi 3 (Candra)", role: "Teknisi", specialty: "Instrument & Transmitter", status: "Hadir", time: "07:55" },
+    { name: "Teknisi 4 (Dedi)", role: "Teknisi", specialty: "Electrical Panel & Wiring", status: "Hadir", time: "07:56" },
+    { name: "Teknisi 5 (Eko)", role: "Teknisi", specialty: "PLC & Automation", status: "Hadir", time: "07:58" },
+    { name: "Teknisi 6 (Fajar)", role: "Teknisi", specialty: "General E&I Maintenance", status: "Belum Absen", time: "-" }
+  ];
+
+  let workOrders = [
+    { id: "WO-001", type: "Preventive Maintenance", tag: "PT-101A (Suction Pressure)", tech: "Teknisi 1 (Andi)", desc: "Cek kalibrasi 4-20mA dan pembersihan impulse line.", status: "Done", date: "19 Nov 2026" },
+    { id: "WO-002", type: "Breakdown Report", tag: "MTR-204 (Cooling Fan)", tech: "Teknisi 2 (Budi)", desc: "Thermal overload trip, pengecekan megger insulasi motor & contactor.", status: "In Progress", date: "19 Nov 2026" },
+    { id: "WO-003", type: "Corrective Maintenance", tag: "PLC-S7-1200 Skid 02", tech: "Teknisi 5 (Eko)", desc: "Penggantian module analog input SM1231 channel 2 rusak.", status: "Open", date: "19 Nov 2026" },
+    { id: "WO-004", type: "Preventive Maintenance", tag: "PSV-301 & Solenoid Valve", tech: "Teknisi 3 (Candra)", desc: "Inspeksi visual dan function test solenoid shutdown valve.", status: "In Progress", date: "19 Nov 2026" }
+  ];
+
+  let attendanceLogs = [
+    { name: "Supervisor E&I", type: "Masuk", time: "07:45 WIB", coords: "-6.4521, 106.6892 (Area Plant)", status: "Tepat Waktu" },
+    { name: "Teknisi 1 (Andi)", type: "Masuk", time: "07:50 WIB", coords: "-6.4523, 106.6890 (Workshop E&I)", status: "Tepat Waktu" },
+    { name: "Teknisi 2 (Budi)", type: "Masuk", time: "07:52 WIB", coords: "-6.4522, 106.6891 (Workshop E&I)", status: "Tepat Waktu" },
+    { name: "Teknisi 3 (Candra)", type: "Masuk", time: "07:55 WIB", coords: "-6.4520, 106.6894 (Area Skid)", status: "Tepat Waktu" },
+    { name: "Teknisi 4 (Dedi)", type: "Masuk", time: "07:56 WIB", coords: "-6.4521, 106.6892 (Workshop E&I)", status: "Tepat Waktu" },
+    { name: "Teknisi 5 (Eko)", type: "Masuk", time: "07:58 WIB", coords: "-6.4524, 106.6889 (Control Room)", status: "Tepat Waktu" }
+  ];
+
+  let isSupervisor = true;
+  let currentCoords = "-6.4521, 106.6892 (Verified Plant GPS)";
+  let videoStream = null;
+
+  // INIT ICONS & RENDER
+  lucide.createIcons();
+  renderAll();
+
+  function toggleRole() {
+    isSupervisor = !isSupervisor;
+    document.getElementById("roleSwitchBtn").innerText = isSupervisor ? "Mode: Supervisor ⇄" : "Mode: Teknisi ⇄";
+    document.getElementById("userName").innerText = isSupervisor ? "Supervisor E&I" : "Teknisi 1 (Andi)";
+    document.getElementById("userSubtitle").innerText = isSupervisor ? "Lead E&I • Single Shift (08:00 - 17:00)" : "Teknisi E&I • Single Shift (08:00 - 17:00)";
+    document.getElementById("userAvatar").innerText = isSupervisor ? "SP" : "T1";
+    document.getElementById("leftCardLabel").innerText = isSupervisor ? "Tim Hadir" : "Kehadiran Anda";
+    updateDashboardCounters();
+    showToast(isSupervisor ? "Beralih ke tampilan Supervisor E&I" : "Beralih ke tampilan Teknisi Lapangan");
+  }
+
+  function updateDashboardCounters() {
+    const hadirCount = teamMembers.filter(m => m.status === "Hadir").length;
+    document.getElementById("leftCardValue").innerText = isSupervisor ? `${hadirCount} / 7 Orang` : "Hadir • 07:50";
+    const activeWo = workOrders.filter(w => w.status !== "Done").length;
+    document.getElementById("rightCardValue").innerText = `${activeWo} Pekerjaan`;
+    document.getElementById("woCountBadge").innerText = `${workOrders.length} Total Log`;
+  }
+
+  function getBadgeStyle(type) {
+    if (type === "Breakdown Report") return "bg-rose-50 text-rose-600 border-rose-200";
+    if (type === "Corrective Maintenance") return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-blue-50 text-blue-600 border-blue-200";
+  }
+
+  function getStatusStyle(status) {
+    if (status === "Done") return "bg-emerald-100 text-emerald-700";
+    if (status === "In Progress") return "bg-blue-100 text-blue-700";
+    return "bg-slate-200 text-slate-700";
+  }
+
+  function renderWoCard(wo, allowStatusCycle = false) {
+    return `
+      <div class="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-xs">
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-md border ${getBadgeStyle(wo.type)}">${wo.type}</span>
+          <button onclick="${allowStatusCycle ? `cycleWoStatus('${wo.id}')` : ''}" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full ${getStatusStyle(wo.status)}">
+            ${wo.status} ${allowStatusCycle ? '↻' : ''}
+          </button>
+        </div>
+        <h4 class="text-xs font-bold text-slate-800">${wo.tag}</h4>
+        <p class="text-[11px] text-slate-500 mt-1">${wo.desc}</p>
+        <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-medium">
+          <span>👷 ${wo.tech}</span>
+          <span>${wo.id} • ${wo.date}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderAll() {
+    updateDashboardCounters();
+
+    // Recent WO (Top 3)
+    const recentContainer = document.getElementById("recentWoList");
+    recentContainer.innerHTML = workOrders.slice(0, 3).map(wo => renderWoCard(wo, false)).join("");
+
+    // Full Monitoring
+    filterMonitoring("ALL");
+
+    // Attendance List
+    const attContainer = document.getElementById("attendanceList");
+    attContainer.innerHTML = attendanceLogs.map(log => `
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold text-slate-800">${log.name}</p>
+          <p class="text-[11px] text-slate-500 mt-0.5">📍 ${log.coords}</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${log.type === 'Masuk' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">
+            ${log.type}
+          </span>
+          <p class="text-[11px] font-semibold text-slate-700 mt-1">${log.time}</p>
+        </div>
+      </div>
+    `).join("");
+
+    // Team List
+    const teamContainer = document.getElementById("teamListContainer");
+    teamContainer.innerHTML = teamMembers.map(member => `
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200/70 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full ${member.role === 'Supervisor' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} flex items-center justify-center font-bold text-xs">
+            ${member.role === 'Supervisor' ? 'SPV' : 'TEK'}
+          </div>
+          <div>
+            <p class="text-xs font-bold text-slate-800">${member.name}</p>
+            <p class="text-[11px] text-slate-500">${member.specialty}</p>
+          </div>
+        </div>
+        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full ${member.status === 'Hadir' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+          ${member.status}
+        </span>
+      </div>
+    `).join("");
+  }
+
+  function filterMonitoring(category) {
+    const filtered = category === "ALL" ? workOrders : workOrders.filter(w => w.type === category);
+    document.getElementById("fullMonitoringList").innerHTML = filtered.map(wo => renderWoCard(wo, true)).join("");
+  }
+
+  function cycleWoStatus(id) {
+    const order = ["Open", "In Progress", "Done"];
+    const wo = workOrders.find(w => w.id === id);
+    if (wo) {
+      const nextIdx = (order.indexOf(wo.status) + 1) % order.length;
+      wo.status = order[nextIdx];
+      renderAll();
+      showToast(`Status ${wo.id} diubah menjadi ${wo.status}`);
+    }
+  }
+
+  // MODAL CONTROLS
+  function openModal(id) {
+    document.getElementById(id).classList.remove("hidden");
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.add("hidden");
+    if (id === "modalAbsen" && videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      videoStream = null;
+    }
+  }
+
+  function closeAllModals() {
+    ["modalAbsen", "modalWork", "modalMonitoring", "modalRiwayat", "modalTim", "modalLaporan"].forEach(closeModal);
+  }
+
+  function openWorkModal(category) {
+    document.getElementById("woTypeInput").value = category;
+    document.getElementById("workModalTitle").innerText = `Input ${category}`;
+    document.getElementById("workCategoryBadge").innerText = category.toUpperCase();
+    openModal("modalWork");
+  }
+
+  function submitWorkOrder(e) {
+    e.preventDefault();
+    const newWo = {
+      id: `WO-00${workOrders.length + 1}`,
+      type: document.getElementById("woTypeInput").value,
+      tag: document.getElementById("woTagInput").value,
+      tech: document.getElementById("woTechInput").value,
+      desc: document.getElementById("woDescInput").value,
+      status: document.getElementById("woStatusInput").value,
+      date: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+    };
+    workOrders.unshift(newWo);
+    e.target.reset();
+    closeModal("modalWork");
+    renderAll();
+    showToast(`${newWo.type} berhasil disimpan!`);
+  }
+
+  // ABSENSI GPS & CAMERA
+  function openAbsenModal() {
+    openModal("modalAbsen");
+    const now = new Date();
+    document.getElementById("liveClockBadge").innerText = now.toTimeString().slice(0, 8) + " WIB";
+
+    // Get GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          currentCoords = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} (Akurasi ±${Math.round(pos.coords.accuracy)}m)`;
+          document.getElementById("gpsCoordsText").innerText = currentCoords;
+        },
+        () => {
+          document.getElementById("gpsCoordsText").innerText = currentCoords;
+        }
+      );
+    }
+
+    // Start Selfie Camera
+    const video = document.getElementById("cameraStream");
+    const placeholder = document.getElementById("cameraPlaceholder");
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then((stream) => {
+          videoStream = stream;
+          video.srcObject = stream;
+          video.classList.remove("hidden");
+          placeholder.classList.add("hidden");
+        })
+        .catch(() => {
+          video.classList.add("hidden");
+          placeholder.classList.remove("hidden");
+        });
+    }
+  }
+
+  function submitAbsensi(type) {
+    const activeUser = isSupervisor ? "Supervisor E&I" : "Teknisi 6 (Fajar)";
+    const timeStr = new Date().toTimeString().slice(0, 5) + " WIB";
+
+    attendanceLogs.unshift({
+      name: activeUser,
+      type: type,
+      time: timeStr,
+      coords: currentCoords,
+      status: "Verified Selfie + GPS"
+    });
+
+    const member = teamMembers.find(m => m.name === activeUser);
+    if (member && type === "Masuk") {
+      member.status = "Hadir";
+      member.time = timeStr.slice(0, 5);
+    }
+
+    closeModal("modalAbsen");
+    renderAll();
+    showToast(`Absen ${type} (${activeUser}) berhasil direkam!`);
+  }
+
+  // EXPORT EXCEL (.xlsx)
+  function exportToExcel() {
+    const wb = XLSX.utils.book_new();
+    const wsWo = XLSX.utils.json_to_sheet(workOrders);
+    const wsAbsen = XLSX.utils.json_to_sheet(attendanceLogs);
+
+    XLSX.utils.book_append_sheet(wb, wsWo, "Laporan_Kerja_EI");
+    XLSX.utils.book_append_sheet(wb, wsAbsen, "Absensi_GPS_EI");
+
+    XLSX.writeFile(wb, "Laporan_EI_Team_Management.xlsx");
+    showToast("File Excel (.xlsx) berhasil diunduh!");
+  }
+
+  // EXPORT PDF (.pdf)
+  function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(14);
+    doc.text("LAPORAN HARIAN DEPARTEMEN ELECTRICAL & INSTRUMENT", 14, 18);
+    doc.setFontSize(10);
+    doc.text("Sistem Kerja: Single Shift (08:00 - 17:00) | Tim: 1 Supervisor & 6 Teknisi", 14, 25);
+
+    doc.autoTable({
+      startY: 32,
+      head: [["ID", "Kategori", "Tag / Alat", "Teknisi", "Status", "Keterangan"]],
+      body: workOrders.map(w => [w.id, w.type, w.tag, w.tech, w.status, w.desc]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [11, 77, 179] }
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.text("REKAP KEHADIRAN GPS & SELFIE", 14, finalY);
+
+    doc.autoTable({
+      startY: finalY + 4,
+      head: [["Nama Personel", "Tipe", "Waktu", "Koordinat GPS", "Keterangan"]],
+      body: attendanceLogs.map(a => [a.name, a.type, a.time, a.coords, a.status]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [16, 185, 129] }
+    });
+
+    doc.save("Laporan_EI_Team_Management.pdf");
+    showToast("File PDF (.pdf) berhasil diunduh!");
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById("toast");
+    toast.innerText = msg;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 3000);
+  }
+</script>
+</body>
+</html>

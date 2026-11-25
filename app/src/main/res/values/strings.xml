@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">SCM dan EII Departemen</string>
+    <string name="app_header_badge">SCM DAN EII TEAM</string>
+    <string name="shift_info">Single Shift (08:00 - 17:00 WIB)</string>
+    <string name="sign_in_google">Masuk dengan Google</string>
+    <string name="sign_in_subtitle">Masuk untuk sinkronisasi status posisi kerja, aktivitas SCM &amp; pekerjaan team ke cloud.</string>
+    <string name="nav_home">Beranda</string>
+    <string name="nav_activity">Aktivitas</string>
+    <string name="nav_positions">Posisi</string>
+    <string name="nav_reports">Laporan</string>
+    <string name="nav_team">Team</string>
+    <string name="menu_section_title">Menu Operasional</string>
+    <string name="briefing_section_title">Info &amp; Briefing Team</string>
+    <string name="recent_wo_title">Pekerjaan Terbaru</string>
+    <string name="error_generic">Terjadi kesalahan. Silakan coba lagi.</string>
+</resources>

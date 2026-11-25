@@ -1,0 +1,485 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isSharedTeamWorkspace(workspaceId) {
+      return isSignedIn() && workspaceId == 'scm_eii';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidWorkspaceProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             (!('jobTitle' in data) || (data.jobTitle is string && data.jobTitle.size() >= 1 && data.jobTitle.size() <= 80)) &&
+             data.activeRole in ['Supervisor', 'Teknisi'] &&
+             data.activeMemberName is string && data.activeMemberName.size() >= 1 && data.activeMemberName.size() <= 80 &&
+             data.initialized is bool &&
+             (!('profileCompleted' in data) || data.profileCompleted is bool) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSharedWorkspace(data) {
+      return data.workspaceId == 'scm_eii' &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.initialized is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTeamMember(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+             data.role is string && data.role.size() >= 1 && data.role.size() <= 80 &&
+             data.specialty is string && data.specialty.size() >= 1 && data.specialty.size() <= 100 &&
+             data.status in [
+               'Hadir', 'Pulang', 'Belum Absen',
+               'Kantor', 'Workshop', 'Luar Area Kerja', 'Dinas Luar Kota', 'Cuti', 'Sakit', 'Izin'
+             ] &&
+             (!('workNote' in data) || (data.workNote is string && data.workNote.size() <= 200)) &&
+             (!('whatsappNumber' in data) || (data.whatsappNumber is string && data.whatsappNumber.size() <= 30)) &&
+             data.lastTime is string && data.lastTime.size() >= 1 && data.lastTime.size() <= 40 &&
+             data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 500 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidWorkStatusLog(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.personName is string && data.personName.size() >= 1 && data.personName.size() <= 80 &&
+             data.workStatus in ['Kantor', 'Workshop', 'Luar Area Kerja', 'Dinas Luar Kota', 'Cuti', 'Sakit', 'Izin'] &&
+             data.destinationNote is string && data.destinationNote.size() <= 200 &&
+             (!(data.workStatus in ['Luar Area Kerja', 'Dinas Luar Kota', 'Izin']) || data.destinationNote.size() >= 1) &&
+             data.timeLabel is string && data.timeLabel.size() >= 1 && data.timeLabel.size() <= 40 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPhotoList(photoList) {
+      return photoList is list &&
+             photoList.size() <= 4 &&
+             (photoList.size() < 1 || (photoList[0] is string && photoList[0].size() >= 1 && photoList[0].size() <= 500)) &&
+             (photoList.size() < 2 || (photoList[1] is string && photoList[1].size() >= 1 && photoList[1].size() <= 500)) &&
+             (photoList.size() < 3 || (photoList[2] is string && photoList[2].size() >= 1 && photoList[2].size() <= 500)) &&
+             (photoList.size() < 4 || (photoList[3] is string && photoList[3].size() >= 1 && photoList[3].size() <= 500));
+    }
+
+    function isValidWorkOrder(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.woCode is string && data.woCode.size() >= 1 && data.woCode.size() <= 30 &&
+             data.category in [
+               'Preventive Maintenance',
+               'Corrective Maintenance',
+               'Breakdown Report',
+               'Persiapan',
+               'Pembelian',
+               'Function Test',
+               'Instalasi',
+               'Meeting'
+             ] &&
+             data.equipmentTag is string && data.equipmentTag.size() >= 1 && data.equipmentTag.size() <= 120 &&
+             data.technician is string && data.technician.size() >= 1 && data.technician.size() <= 80 &&
+             data.description is string && data.description.size() >= 1 && data.description.size() <= 1000 &&
+             data.status in ['Open', 'In Progress', 'Done'] &&
+             data.reportDate is string && data.reportDate.size() >= 1 && data.reportDate.size() <= 40 &&
+             (!('beforePhotoUri' in data) || (data.beforePhotoUri is string && data.beforePhotoUri.size() <= 500)) &&
+             (!('afterPhotoUri' in data) || (data.afterPhotoUri is string && data.afterPhotoUri.size() <= 500)) &&
+             (!('beforePhotoUris' in data) || isValidPhotoList(data.beforePhotoUris)) &&
+             (!('afterPhotoUris' in data) || isValidPhotoList(data.afterPhotoUris)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAttendanceLog(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.personName is string && data.personName.size() >= 1 && data.personName.size() <= 80 &&
+             data.attendanceType in ['Masuk', 'Pulang'] &&
+             data.timeLabel is string && data.timeLabel.size() >= 1 && data.timeLabel.size() <= 30 &&
+             data.gpsCoordinates is string && data.gpsCoordinates.size() >= 1 && data.gpsCoordinates.size() <= 160 &&
+             data.status is string && data.status.size() >= 1 && data.status.size() <= 80 &&
+             (!('selfieUri' in data) || (data.selfieUri is string && data.selfieUri.size() <= 500)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidBriefing(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.badge is string && data.badge.size() >= 1 && data.badge.size() <= 40 &&
+             data.timeTag is string && data.timeTag.size() >= 1 && data.timeTag.size() <= 40 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 500 &&
+             data.isSafetyAlert is bool &&
+             data.sortOrder is int && data.sortOrder >= 0 && data.sortOrder <= 500 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidScmJob(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.jobCode is string && data.jobCode.size() >= 1 && data.jobCode.size() <= 30 &&
+             data.category in [
+               'Purchase Request',
+               'Pengiriman Barang',
+               'Penerimaan Material',
+               'Warehouse & Stok',
+               'Mob',
+               'Demob',
+               'Plan',
+               'Forecast',
+               'Meeting'
+             ] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+             data.referenceNumber is string && data.referenceNumber.size() <= 80 &&
+             data.picName is string && data.picName.size() >= 1 && data.picName.size() <= 80 &&
+             data.destinationOrVendor is string && data.destinationOrVendor.size() <= 120 &&
+             data.description is string && data.description.size() >= 1 && data.description.size() <= 1000 &&
+             data.status in ['Open', 'Proses', 'Selesai'] &&
+             data.jobDate is string && data.jobDate.size() >= 1 && data.jobDate.size() <= 40 &&
+             (!('beforePhotoUri' in data) || (data.beforePhotoUri is string && data.beforePhotoUri.size() <= 500)) &&
+             (!('afterPhotoUri' in data) || (data.afterPhotoUri is string && data.afterPhotoUri.size() <= 500)) &&
+             (!('beforePhotoUris' in data) || isValidPhotoList(data.beforePhotoUris)) &&
+             (!('afterPhotoUris' in data) || isValidPhotoList(data.afterPhotoUris)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTeamPhoto(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.contentBase64 is string && data.contentBase64.size() >= 8 && data.contentBase64.size() <= 750000 &&
+             data.mimeType in ['image/jpeg', 'image/png', 'image/webp'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidDailyWorkReport(data, expectedWorkspaceId) {
+      return data.workspaceId == expectedWorkspaceId &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.reportCode is string && data.reportCode.size() >= 1 && data.reportCode.size() <= 30 &&
+             data.workDate is string && data.workDate.size() >= 1 && data.workDate.size() <= 40 &&
+             data.technicianName is string && data.technicianName.size() >= 1 && data.technicianName.size() <= 80 &&
+             data.category in [
+               'Daily Inspection',
+               'Preventive Maintenance',
+               'Corrective Maintenance',
+               'Breakdown',
+               'Calibration',
+               'Troubleshooting',
+               'Installation',
+               'Modification',
+               'Other Activity'
+             ] &&
+             data.equipmentName is string && data.equipmentName.size() >= 1 && data.equipmentName.size() <= 140 &&
+             data.workLocation is string && data.workLocation.size() >= 1 && data.workLocation.size() <= 140 &&
+             data.activityDescription is string && data.activityDescription.size() >= 1 && data.activityDescription.size() <= 1000 &&
+             data.startTime is string && data.startTime.size() >= 1 && data.startTime.size() <= 20 &&
+             data.endTime is string && data.endTime.size() >= 1 && data.endTime.size() <= 20 &&
+             data.workResult is string && data.workResult.size() >= 1 && data.workResult.size() <= 500 &&
+             data.status in ['Open', 'Proses', 'Selesai'] &&
+             data.issuesFound is string && data.issuesFound.size() <= 500 &&
+             (!('photoUris' in data) || isValidPhotoList(data.photoUris)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // Personal worker profile + legacy user-scoped read/cleanup support
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'activeRole', 'activeMemberName', 'initialized', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'jobTitle', 'activeRole', 'activeMemberName', 'initialized', 'profileCompleted', 'createdAt', 'updatedAt']) &&
+                       isValidWorkspaceProfile(incoming());
+
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       isValidWorkspaceProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['activeRole', 'activeMemberName', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['initialized', 'displayName', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'jobTitle', 'activeRole', 'activeMemberName', 'updatedAt']) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'jobTitle', 'activeRole', 'activeMemberName', 'profileCompleted', 'updatedAt'])
+                       );
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // Legacy user-scoped subcollections kept readable for owner migration
+      match /{legacySub}/{docId} {
+        allow read: if isValidId(userId) && isOwner(userId) &&
+                       legacySub in ['team_members', 'work_orders', 'attendance_logs', 'briefings', 'scm_jobs'];
+      }
+    }
+
+    // Shared team workspace accessible by all authenticated logged-in team members
+    match /workspaces/{workspaceId} {
+      allow get: if isValidId(workspaceId) && isSharedTeamWorkspace(workspaceId);
+      allow list: if isSignedIn() && existing().workspaceId == 'scm_eii';
+
+      allow create: if isValidId(workspaceId) &&
+                       isSharedTeamWorkspace(workspaceId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['workspaceId', 'userId', 'initialized', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['workspaceId', 'userId', 'initialized', 'createdAt', 'updatedAt']) &&
+                       isValidSharedWorkspace(incoming());
+
+      allow update: if isValidId(workspaceId) &&
+                       isSharedTeamWorkspace(workspaceId) &&
+                       isValidSharedWorkspace(incoming()) &&
+                       incoming().workspaceId == existing().workspaceId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['initialized', 'updatedAt']);
+
+      allow delete: if false;
+
+      match /team_members/{memberId} {
+        allow get: if isValidId(workspaceId) && isValidId(memberId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(memberId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'name', 'role', 'specialty', 'status', 'lastTime', 'sortOrder', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'name', 'role', 'specialty', 'whatsappNumber', 'status', 'workNote', 'lastTime', 'sortOrder', 'createdAt', 'updatedAt']) &&
+                         isValidTeamMember(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(memberId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidTeamMember(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'lastTime', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'workNote', 'lastTime', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'specialty', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'specialty', 'whatsappNumber', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'specialty', 'whatsappNumber', 'status', 'workNote', 'lastTime', 'sortOrder', 'updatedAt'])
+                         );
+
+        allow delete: if isValidId(workspaceId) && isValidId(memberId) && isSharedTeamWorkspace(workspaceId);
+      }
+
+      match /work_orders/{workOrderId} {
+        allow get: if isValidId(workspaceId) && isValidId(workOrderId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(workOrderId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'woCode', 'category', 'equipmentTag', 'technician', 'description', 'status', 'reportDate', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'woCode', 'category', 'equipmentTag', 'technician', 'description', 'status', 'reportDate', 'beforePhotoUri', 'afterPhotoUri', 'beforePhotoUris', 'afterPhotoUris', 'createdAt', 'updatedAt']) &&
+                         isValidWorkOrder(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(workOrderId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidWorkOrder(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().woCode == existing().woCode &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['beforePhotoUri', 'beforePhotoUris', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['afterPhotoUri', 'afterPhotoUris', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['beforePhotoUri', 'afterPhotoUri', 'beforePhotoUris', 'afterPhotoUris', 'status', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['category', 'equipmentTag', 'technician', 'description', 'status', 'beforePhotoUri', 'afterPhotoUri', 'beforePhotoUris', 'afterPhotoUris', 'updatedAt'])
+                         );
+
+        allow delete: if isValidId(workspaceId) && isValidId(workOrderId) && isSharedTeamWorkspace(workspaceId);
+      }
+
+      match /attendance_logs/{logId} {
+        allow get: if isValidId(workspaceId) && isValidId(logId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(logId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'personName', 'attendanceType', 'timeLabel', 'gpsCoordinates', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'personName', 'attendanceType', 'timeLabel', 'gpsCoordinates', 'status', 'selfieUri', 'createdAt', 'updatedAt']) &&
+                         isValidAttendanceLog(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(logId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidAttendanceLog(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['personName', 'updatedAt'])
+                         );
+
+        allow delete: if isValidId(workspaceId) && isValidId(logId) && isSharedTeamWorkspace(workspaceId);
+      }
+
+      match /briefings/{briefingId} {
+        allow get: if isValidId(workspaceId) && isValidId(briefingId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(briefingId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'badge', 'timeTag', 'title', 'summary', 'isSafetyAlert', 'sortOrder', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'badge', 'timeTag', 'title', 'summary', 'isSafetyAlert', 'sortOrder', 'createdAt', 'updatedAt']) &&
+                         isValidBriefing(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(briefingId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidBriefing(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['badge', 'timeTag', 'title', 'summary', 'isSafetyAlert', 'updatedAt']);
+
+        allow delete: if isValidId(workspaceId) && isValidId(briefingId) && isSharedTeamWorkspace(workspaceId);
+      }
+
+      match /scm_jobs/{jobId} {
+        allow get: if isValidId(workspaceId) && isValidId(jobId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(jobId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'jobCode', 'category', 'title', 'referenceNumber', 'picName', 'destinationOrVendor', 'description', 'status', 'jobDate', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'jobCode', 'category', 'title', 'referenceNumber', 'picName', 'destinationOrVendor', 'description', 'status', 'jobDate', 'beforePhotoUri', 'afterPhotoUri', 'beforePhotoUris', 'afterPhotoUris', 'createdAt', 'updatedAt']) &&
+                         isValidScmJob(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(jobId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidScmJob(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().jobCode == existing().jobCode &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['beforePhotoUri', 'beforePhotoUris', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['afterPhotoUri', 'afterPhotoUris', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['beforePhotoUri', 'afterPhotoUri', 'beforePhotoUris', 'afterPhotoUris', 'status', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['category', 'title', 'referenceNumber', 'picName', 'destinationOrVendor', 'description', 'status', 'beforePhotoUri', 'afterPhotoUri', 'beforePhotoUris', 'afterPhotoUris', 'updatedAt'])
+                         );
+
+        allow delete: if isValidId(workspaceId) && isValidId(jobId) && isSharedTeamWorkspace(workspaceId);
+      }
+
+      match /photos/{photoId} {
+        allow get: if isValidId(workspaceId) && isValidId(photoId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(photoId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'contentBase64', 'mimeType', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'contentBase64', 'mimeType', 'createdAt', 'updatedAt']) &&
+                         isValidTeamPhoto(incoming(), workspaceId);
+
+        allow update: if false;
+        allow delete: if isValidId(workspaceId) && isValidId(photoId) && isSharedTeamWorkspace(workspaceId);
+      }
+      match /work_status_logs/{logId} {
+        allow get: if isValidId(workspaceId) && isValidId(logId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(logId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'personName', 'workStatus', 'destinationNote', 'timeLabel', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'personName', 'workStatus', 'destinationNote', 'timeLabel', 'createdAt', 'updatedAt']) &&
+                         isValidWorkStatusLog(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(logId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidWorkStatusLog(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['personName', 'workStatus', 'destinationNote', 'timeLabel', 'updatedAt']);
+
+        allow delete: if isValidId(workspaceId) && isValidId(logId) && isSharedTeamWorkspace(workspaceId);
+      }
+
+      match /daily_work_reports/{reportId} {
+        allow get: if isValidId(workspaceId) && isValidId(reportId) && isSharedTeamWorkspace(workspaceId);
+        allow list: if isSharedTeamWorkspace(workspaceId) && existing().workspaceId == workspaceId;
+
+        allow create: if isValidId(workspaceId) &&
+                         isValidId(reportId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['workspaceId', 'userId', 'reportCode', 'workDate', 'technicianName', 'category', 'equipmentName', 'workLocation', 'activityDescription', 'startTime', 'endTime', 'workResult', 'status', 'issuesFound', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['workspaceId', 'userId', 'reportCode', 'workDate', 'technicianName', 'category', 'equipmentName', 'workLocation', 'activityDescription', 'startTime', 'endTime', 'workResult', 'status', 'issuesFound', 'photoUris', 'createdAt', 'updatedAt']) &&
+                         isValidDailyWorkReport(incoming(), workspaceId);
+
+        allow update: if isValidId(workspaceId) &&
+                         isValidId(reportId) &&
+                         isSharedTeamWorkspace(workspaceId) &&
+                         isValidDailyWorkReport(incoming(), workspaceId) &&
+                         incoming().workspaceId == existing().workspaceId &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().reportCode == existing().reportCode &&
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['photoUris', 'updatedAt']) ||
+                           incoming().diff(existing()).affectedKeys().hasOnly(['workDate', 'technicianName', 'category', 'equipmentName', 'workLocation', 'activityDescription', 'startTime', 'endTime', 'workResult', 'status', 'issuesFound', 'photoUris', 'updatedAt'])
+                         );
+
+        allow delete: if isValidId(workspaceId) && isValidId(reportId) && isSharedTeamWorkspace(workspaceId);
+      }
+    }
+  }
+}

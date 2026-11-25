@@ -1,0 +1,6 @@
+{
+  "name": "SCM dan EII Departemen",
+  "description": "Manajemen SCM dan EII Team dengan absensi GPS & selfie, monitoring pekerjaan & aktivitas SCM, info briefing yang dapat diedit, foto cloud bersama di Firebase, serta ekspor laporan Excel dan PDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

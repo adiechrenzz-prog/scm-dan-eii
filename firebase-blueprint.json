@@ -1,0 +1,765 @@
+{
+  "entities": {
+    "WorkspaceProfile": {
+      "title": "WorkspaceProfile",
+      "description": "Personal worker settings and active role state for an authenticated SCM & EII Team user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID owning this personal profile."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the signed-in worker."
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "Selected position/jabatan from login dropdown."
+        },
+        "activeRole": {
+          "type": "string",
+          "enum": ["Supervisor", "Teknisi"],
+          "description": "Current active UI role mode."
+        },
+        "activeMemberName": {
+          "type": "string",
+          "description": "Currently selected personnel profile name."
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "Whether initial team workspace and shift logs were seeded."
+        },
+        "profileCompleted": {
+          "type": "boolean",
+          "description": "Whether the signed-in worker has completed their post-login name and jabatan setup."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "activeRole",
+        "activeMemberName",
+        "initialized",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SharedWorkspace": {
+      "title": "SharedWorkspace",
+      "description": "Shared operational workspace root for all signed-in SCM dan EII Team members.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Fixed identifier of the shared team workspace."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase UID that initialized the shared workspace."
+        },
+        "initialized": {
+          "type": "boolean",
+          "description": "Whether the shared team roster and initial data were seeded."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "initialized",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Editable personnel entry in the shared SCM dan EII Team roster.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Personnel display name."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role or jabatan within the SCM dan EII Team."
+        },
+        "specialty": {
+          "type": "string",
+          "description": "Engineering or logistics specialty."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "WhatsApp phone number for daily 16:00 activity reminder broadcast."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Hadir",
+            "Pulang",
+            "Belum Absen",
+            "Kantor",
+            "Workshop",
+            "Luar Area Kerja",
+            "Dinas Luar Kota",
+            "Cuti",
+            "Sakit",
+            "Izin"
+          ],
+          "description": "Current work position status."
+        },
+        "workNote": {
+          "type": "string",
+          "description": "Destination or reason note (required for Luar Area Kerja, Dinas Luar Kota, and Izin)."
+        },
+        "lastTime": {
+          "type": "string",
+          "description": "Last position update time label or '-'."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display ordering index."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "name",
+        "role",
+        "specialty",
+        "status",
+        "lastTime",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WorkOrder": {
+      "title": "WorkOrder",
+      "description": "Shared operational work order visible to all signed-in team members.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "woCode": {
+          "type": "string",
+          "description": "Human-readable work order code (e.g. WO-001)."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Preventive Maintenance",
+            "Corrective Maintenance",
+            "Breakdown Report",
+            "Persiapan",
+            "Pembelian",
+            "Function Test",
+            "Instalasi",
+            "Meeting"
+          ],
+          "description": "Work activity category."
+        },
+        "equipmentTag": {
+          "type": "string",
+          "description": "Equipment tag number or activity subject."
+        },
+        "technician": {
+          "type": "string",
+          "description": "Assigned technician name from Team roster."
+        },
+        "description": {
+          "type": "string",
+          "description": "Findings, readings, and corrective actions."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "In Progress", "Done"],
+          "description": "Current work order execution status."
+        },
+        "reportDate": {
+          "type": "string",
+          "description": "Formatted report date label."
+        },
+        "beforePhotoUri": {
+          "type": "string",
+          "description": "Primary cloud photo reference (fbphoto://<photoId>) taken before work starts."
+        },
+        "afterPhotoUri": {
+          "type": "string",
+          "description": "Primary cloud photo reference (fbphoto://<photoId>) taken after work completes."
+        },
+        "beforePhotoUris": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "type": "string" },
+          "description": "Up to 4 cloud photo references (fbphoto://<photoId>) taken before work starts."
+        },
+        "afterPhotoUris": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "type": "string" },
+          "description": "Up to 4 cloud photo references (fbphoto://<photoId>) taken after work completes."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "woCode",
+        "category",
+        "equipmentTag",
+        "technician",
+        "description",
+        "status",
+        "reportDate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AttendanceLog": {
+      "title": "AttendanceLog",
+      "description": "Shared single-shift GPS and selfie attendance record.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "personName": {
+          "type": "string",
+          "description": "Name of personnel checking in or out."
+        },
+        "attendanceType": {
+          "type": "string",
+          "enum": ["Masuk", "Pulang"],
+          "description": "Clock-in or clock-out type."
+        },
+        "timeLabel": {
+          "type": "string",
+          "description": "Formatted WIB timestamp label."
+        },
+        "gpsCoordinates": {
+          "type": "string",
+          "description": "Captured latitude, longitude, and GPS accuracy."
+        },
+        "status": {
+          "type": "string",
+          "description": "Verification status label."
+        },
+        "selfieUri": {
+          "type": "string",
+          "description": "Cloud photo reference or URI to captured selfie image."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "personName",
+        "attendanceType",
+        "timeLabel",
+        "gpsCoordinates",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BriefingNotice": {
+      "title": "BriefingNotice",
+      "description": "Shared editable shift briefing or safety alert displayed on the dashboard.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "badge": {
+          "type": "string",
+          "description": "Short uppercase category badge."
+        },
+        "timeTag": {
+          "type": "string",
+          "description": "Shift or time tag."
+        },
+        "title": {
+          "type": "string",
+          "description": "Briefing notice headline."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Briefing notice body instructions."
+        },
+        "isSafetyAlert": {
+          "type": "boolean",
+          "description": "Whether the notice is highlighted as a safety alert."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display ordering index."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "badge",
+        "timeTag",
+        "title",
+        "summary",
+        "isSafetyAlert",
+        "sortOrder",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ScmJob": {
+      "title": "ScmJob",
+      "description": "Shared SCM & Logistics activity job visible to all signed-in users.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "jobCode": {
+          "type": "string",
+          "description": "Human-readable SCM job code (e.g. SCM-001)."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Purchase Request",
+            "Pengiriman Barang",
+            "Penerimaan Material",
+            "Warehouse & Stok",
+            "Mob",
+            "Demob",
+            "Plan",
+            "Forecast",
+            "Meeting"
+          ],
+          "description": "SCM job category."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short job or material title."
+        },
+        "referenceNumber": {
+          "type": "string",
+          "description": "Optional PR, PO, or Surat Jalan reference number."
+        },
+        "picName": {
+          "type": "string",
+          "description": "Person in charge / requester name."
+        },
+        "destinationOrVendor": {
+          "type": "string",
+          "description": "Vendor, origin, or delivery destination."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed list of goods, quantities, or logistics notes."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "Proses", "Selesai"],
+          "description": "Current SCM job execution status."
+        },
+        "jobDate": {
+          "type": "string",
+          "description": "Formatted date label."
+        },
+        "beforePhotoUri": {
+          "type": "string",
+          "description": "Primary cloud photo reference (fbphoto://<photoId>) before SCM job execution."
+        },
+        "afterPhotoUri": {
+          "type": "string",
+          "description": "Primary cloud photo reference (fbphoto://<photoId>) after SCM job completion."
+        },
+        "beforePhotoUris": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "type": "string" },
+          "description": "Up to 4 cloud photo references (fbphoto://<photoId>) before SCM job execution."
+        },
+        "afterPhotoUris": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "type": "string" },
+          "description": "Up to 4 cloud photo references (fbphoto://<photoId>) after SCM job completion."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "jobCode",
+        "category",
+        "title",
+        "referenceNumber",
+        "picName",
+        "destinationOrVendor",
+        "description",
+        "status",
+        "jobDate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TeamPhoto": {
+      "title": "TeamPhoto",
+      "description": "Compressed cloud-hosted documentation photo stored in Firebase Firestore so all logged-in team members can view it.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Uploader Firebase UID."
+        },
+        "contentBase64": {
+          "type": "string",
+          "description": "Base64-encoded compressed JPEG/PNG photo payload."
+        },
+        "mimeType": {
+          "type": "string",
+          "enum": ["image/jpeg", "image/png", "image/webp"],
+          "description": "Image MIME type."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when uploaded."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when uploaded."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "contentBase64",
+        "mimeType",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WorkStatusLog": {
+      "title": "WorkStatusLog",
+      "description": "Shared work position status update record visible to all signed-in team members.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "personName": {
+          "type": "string",
+          "description": "Personnel display name."
+        },
+        "workStatus": {
+          "type": "string",
+          "enum": [
+            "Kantor",
+            "Workshop",
+            "Luar Area Kerja",
+            "Dinas Luar Kota",
+            "Cuti",
+            "Sakit",
+            "Izin"
+          ],
+          "description": "Selected work position status."
+        },
+        "destinationNote": {
+          "type": "string",
+          "description": "Destination or reason note for Luar Area Kerja, Dinas Luar Kota, or Izin."
+        },
+        "timeLabel": {
+          "type": "string",
+          "description": "Formatted timestamp label."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "personName",
+        "workStatus",
+        "destinationNote",
+        "timeLabel",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DailyWorkReport": {
+      "title": "DailyWorkReport",
+      "description": "Shared daily technician work activity report visible to all signed-in team members.",
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "enum": ["scm_eii"],
+          "description": "Shared workspace ID."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Creator Firebase UID."
+        },
+        "reportCode": {
+          "type": "string",
+          "description": "Human-readable daily report code (e.g. DWR-001)."
+        },
+        "workDate": {
+          "type": "string",
+          "description": "Work date label (e.g. 22 Nov 2026)."
+        },
+        "technicianName": {
+          "type": "string",
+          "description": "Technician name."
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Daily Inspection",
+            "Preventive Maintenance",
+            "Corrective Maintenance",
+            "Breakdown",
+            "Calibration",
+            "Troubleshooting",
+            "Installation",
+            "Modification",
+            "Other Activity"
+          ],
+          "description": "Daily work category."
+        },
+        "equipmentName": {
+          "type": "string",
+          "description": "Equipment name or tag."
+        },
+        "workLocation": {
+          "type": "string",
+          "description": "Work location."
+        },
+        "activityDescription": {
+          "type": "string",
+          "description": "Activity description."
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Start time (HH.mm)."
+        },
+        "endTime": {
+          "type": "string",
+          "description": "End time (HH.mm)."
+        },
+        "workResult": {
+          "type": "string",
+          "description": "Work result / outcome."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "Proses", "Selesai"],
+          "description": "Daily report status."
+        },
+        "issuesFound": {
+          "type": "string",
+          "description": "Obstacles or issues encountered during work."
+        },
+        "photoUris": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "type": "string" },
+          "description": "Up to 4 cloud documentation photo references."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "workspaceId",
+        "userId",
+        "reportCode",
+        "workDate",
+        "technicianName",
+        "category",
+        "equipmentName",
+        "workLocation",
+        "activityDescription",
+        "startTime",
+        "endTime",
+        "workResult",
+        "status",
+        "issuesFound",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/WorkspaceProfile" },
+      "description": "Personal worker profile for the signed-in team member."
+    },
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/SharedWorkspace" },
+      "description": "Shared SCM dan EII Team workspace root document."
+    },
+    "/workspaces/{workspaceId}/team_members/{memberId}": {
+      "schema": { "$ref": "#/entities/TeamMember" },
+      "description": "Shared editable team roster visible to all logged-in members."
+    },
+    "/workspaces/{workspaceId}/work_orders/{workOrderId}": {
+      "schema": { "$ref": "#/entities/WorkOrder" },
+      "description": "Shared work order records across all activity categories."
+    },
+    "/workspaces/{workspaceId}/attendance_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AttendanceLog" },
+      "description": "Legacy single-shift attendance logs."
+    },
+    "/workspaces/{workspaceId}/work_status_logs/{logId}": {
+      "schema": { "$ref": "#/entities/WorkStatusLog" },
+      "description": "Shared Status Posisi Kerja logs across the team."
+    },
+    "/workspaces/{workspaceId}/briefings/{briefingId}": {
+      "schema": { "$ref": "#/entities/BriefingNotice" },
+      "description": "Shared editable shift briefing cards and safety alerts."
+    },
+    "/workspaces/{workspaceId}/scm_jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/ScmJob" },
+      "description": "Shared SCM Purchase Request, shipment, mob/demob, plan/forecast, and meeting jobs."
+    },
+    "/workspaces/{workspaceId}/photos/{photoId}": {
+      "schema": { "$ref": "#/entities/TeamPhoto" },
+      "description": "Shared cloud-hosted documentation photos readable by all signed-in team members."
+    },
+    "/workspaces/{workspaceId}/daily_work_reports/{reportId}": {
+      "schema": { "$ref": "#/entities/DailyWorkReport" },
+      "description": "Shared Daily Work Report logs submitted by technicians and team members."
+    }
+  }
+}
